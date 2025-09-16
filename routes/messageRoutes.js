@@ -1,10 +1,10 @@
-// routes/messageRoutes.js
-const express = require('express');
+import express from 'express';
+import { upload } from '../middlewares/uploadMiddleware.js';
+import { sendMessage } from '../controllers/messageController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+
 const router = express.Router();
-const auth = require('../middlewares/authMiddleware');
-const upload = require('../middlewares/uploadMiddleware');
-const { sendMessage } = require('../controllers/messageController');
 
-router.post('/', auth, upload.fields([{ name: 'attachments' }]), sendMessage);
+router.post('/', protect, upload.fields([{ name: 'attachments', maxCount: 1 }]), sendMessage);
 
-module.exports = router;
+export default router;

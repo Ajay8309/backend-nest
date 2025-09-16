@@ -1,8 +1,4 @@
-// middlewares/uploadMiddleware.js
-const multer = require('multer');
+import multer from 'multer';
 
-// use memory storage and upload to cloudinary in controller/service
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-module.exports = upload;
+export const upload = multer({ storage });

@@ -1,27 +1,27 @@
-// controllers/authController.js
-const { signUp, login } = require('../services/authService');
-const responses = require('../utils/responses');
+import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 
-async function signup(req, res) {
+const generateToken = id => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+};
+
+export const signup = async (req, res) => {
   try {
     const { email, password, role } = req.body;
-    await signUp({ email, password, role });
-    return responses.success(res, 201, { message: 'User created successfully' });
+    const user = new User({ email, password, role });
+    await user.save();
+    res.status(201).json({ message: 'User created successfully' });
   } catch (err) {
-    const status = err.status || 400;
-    return responses.error(res, status, { message: err.message || 'invalid request body' });
+    res.status(400).json({ message: 'invalid request body' });
   }
-}
+};
 
-async function signin(req, res) {
-  try {
-    const { email, password } = req.body;
-    const token = await login({ email, password });
-    return responses.success(res, 200, { token });
-  } catch (err) {
-    const status = err.status || 401;
-    return responses.error(res, status, { error: err.message || 'Invalid credentials' });
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (user && (await user.matchPassword(password))) {
+    res.status(200).json({ token: generateToken(user._id) });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials ' });
   }
-}
-
-module.exports = { signup, signin };
+};

@@ -1,19 +1,11 @@
-// models/Message.js
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const messageSchema = new Schema({
-  from: { type: Schema.Types.ObjectId, ref: 'Profile', required: true },
-  to: { type: Schema.Types.ObjectId, ref: 'Profile', required: true },
+const messageSchema = new mongoose.Schema({
+  from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  to: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   text: String,
-  attachments: [
-    {
-      url: String,
-      publicId: String,
-      filename: String
-    }
-  ],
-  createdAt: { type: Date, default: Date.now }
+  attachments: { data: Buffer, contentType: String },
+  sentAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+export default mongoose.model('Message', messageSchema);

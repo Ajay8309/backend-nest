@@ -1,34 +1,60 @@
-// controllers/connectionController.js
-const Profile = require('../models/Profile');
-const { sendConnection, respondConnection } = require('../services/connectionService');
-const responses = require('../utils/responses');
+import Connection from '../models/Connection.js';
 
-async function connectHandler(req, res) {
+// existing connectUser
+export const connectUser = async (req, res) => {
   try {
-    const requesterProfile = await Profile.findOne({ user: req.user._id });
-    if (!requesterProfile) return responses.error(res, 400, { error: 'Create profile first' });
-    const recipientId = req.body.recipientProfileId;
-    if (!recipientId) return responses.error(res, 400, { error: 'recipientProfileId required' });
-
-    const c = await sendConnection(requesterProfile._id, recipientId);
-    return responses.success(res, 201, { connection: c });
+    const connection = new Connection({
+      requester: req.user._id,
+      recipient: req.body.recipientProfileId
+    });
+    await connection.save();
+    res.status(201).json(connection);
   } catch (err) {
     console.error(err);
-    return responses.error(res, 400, { error: err.message });
+    res.status(400).json({ error: 'invalid request body' });
   }
-}
+};
 
-async function respondHandler(req, res) {
+export const listConnections = async (req, res) => {
   try {
-    const connId = req.params.id;
-    const action = req.body.action; // 'accept' or 'decline'
-    if (!['accept','decline'].includes(action)) return responses.error(res, 400, { error: 'invalid action' });
-    const c = await respondConnection(connId, action);
-    return responses.success(res, 200, { connection: c });
+    // find connections where logged-in user is requester or recipient
+    const connections = await Connection.find({
+      $or: [{ requester: req.user._id }, { recipient: req.user._id }]
+    })
+      .populate('requester', 'email') // populate requester info (optional)
+      .populate('recipient', 'email'); // populate recipient info (optional)
+
+    res.status(200).json(connections);
   } catch (err) {
     console.error(err);
-    return responses.error(res, 400, { error: err.message });
+    res.status(400).json({ error: 'Could not fetch connections' });
   }
-}
+};
 
-module.exports = { connectHandler, respondHandler };
+
+
+// update status (accept/reject)
+export const updateConnectionStatus = async (req, res) => {
+  try {
+    const { id } = req.params; // connection id
+    const { status } = req.body; // 'accepted' or 'rejected'
+
+    // Only recipient can change status
+    const connection = await Connection.findOne({
+      _id: id,
+      recipient: req.user._id
+    });
+
+    if (!connection) {
+      return res.status(404).json({ error: 'Connection not found or not authorized' });
+    }
+
+    connection.status = status;
+    await connection.save();
+
+    res.status(200).json({ message: 'Status updated', connection });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: 'Could not update status' });
+  }
+};

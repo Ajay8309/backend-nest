@@ -1,15 +1,10 @@
-// models/Application.js
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const applicationSchema = new Schema({
-  job: { type: Schema.Types.ObjectId, ref: 'Job', required: true },
-  seeker: { type: Schema.Types.ObjectId, ref: 'Profile', required: true },
-  resume: { url: String, publicId: String },
-  coverLetter: { url: String, publicId: String },
-  message: String,
-  appliedAt: { type: Date, default: Date.now },
-  status: { type: String, enum: ['applied','reviewing','rejected','hired'], default: 'applied' }
+const applicationSchema = new mongoose.Schema({
+  job: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  resume: { data: Buffer, contentType: String },
+  coverLetter: { data: Buffer, contentType: String }
 });
 
-module.exports = mongoose.model('Application', applicationSchema);
+export default mongoose.model('Application', applicationSchema);

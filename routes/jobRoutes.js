@@ -1,17 +1,22 @@
-// routes/jobRoutes.js
-const express = require('express');
-const router = express.Router();
-const auth = require('../middlewares/authMiddleware');
-const upload = require('../middlewares/uploadMiddleware');
-const { getJobs, createJobHandler, applyJobHandler } = require('../controllers/jobController');
+import express from 'express';
+import { upload } from '../middlewares/uploadMiddleware.js';
+import { getJobs, applyJob, createJob } from '../controllers/jobController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
-// view jobs
+const router = express.Router();
+
 router.get('/', getJobs);
 
-// employers create job
-router.post('/', auth, createJobHandler);
+router.post("/", protect, createJob);
 
-// apply to job (authenticated seeker), allow resume/cover upload in apply
-router.post('/:jobId/apply', auth, upload.fields([{ name: 'resume' }, { name: 'coverLetter' }]), applyJobHandler);
+router.post(
+  '/:jobId/apply',
+  protect,
+  upload.fields([
+    { name: 'resume', maxCount: 1 },
+    { name: 'coverLetter', maxCount: 1 }
+  ]),
+  applyJob
+);
 
-module.exports = router;
+export default router;

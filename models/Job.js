@@ -1,17 +1,14 @@
 // models/Job.js
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+import mongoose from 'mongoose';
 
-const jobSchema = new Schema({
-  title: String,
-  description: String,
-  company: { type: Schema.Types.ObjectId, ref: 'Profile' }, // employer profile
-  companyName: String,
+const jobSchema = new mongoose.Schema({
+  employer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  company: { type: String, required: true },
   skillsRequired: [String],
   salaryRange: String,
-  location: String,
-  postedAt: { type: Date, default: Date.now },
-  active: { type: Boolean, default: true }
+  createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Job', jobSchema);
+export default mongoose.model('Job', jobSchema);

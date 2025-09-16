@@ -1,10 +1,17 @@
-// routes/connectionRoutes.js
-const express = require('express');
+import express from 'express';
+import {
+  connectUser,
+  listConnections,
+  updateConnectionStatus
+} from '../controllers/connectionController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+
 const router = express.Router();
-const auth = require('../middlewares/authMiddleware');
-const { connectHandler, respondHandler } = require('../controllers/connectionController');
 
-router.post('/', auth, connectHandler); // create connection request
-router.post('/:id/respond', auth, respondHandler); // accept/decline
+router.post('/', protect, connectUser);
 
-module.exports = router;
+router.get('/', protect, listConnections);
+
+router.put('/:id/status', protect, updateConnectionStatus);
+
+export default router;

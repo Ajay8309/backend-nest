@@ -1,11 +1,18 @@
-// routes/profileRoutes.js
-const express = require('express');
+import express from 'express';
+import { upload } from '../middlewares/uploadMiddleware.js';
+import { createProfile } from '../controllers/profileController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+
 const router = express.Router();
-const auth = require('../middlewares/authMiddleware');
-const upload = require('../middlewares/uploadMiddleware');
-const { createProfileHandler } = require('../controllers/profileController');
 
-// create or update profile (multipart to allow resume/cover)
-router.post('/', auth, upload.fields([{ name: 'resume' }, { name: 'coverLetter' }]), createProfileHandler);
+router.post(
+  '/',
+  protect,
+  upload.fields([
+    { name: 'resume', maxCount: 1 },
+    { name: 'coverLetter', maxCount: 1 }
+  ]),
+  createProfile
+);
 
-module.exports = router;
+export default router;

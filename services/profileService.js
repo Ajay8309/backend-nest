@@ -1,25 +1,23 @@
-// services/profileService.js
-const Profile = require('../models/Profile');
-const User = require('../models/User');
+import Profile from '../models/Profile.js';
 
-async function createProfile(userId, profileData) {
-    console.log("gello");
-  const user = await User.findById(userId);
-  if (!user) {
-    const err = new Error('User not found');
-    err.status = 404;
-    throw err;
-  }
-  const exists = await Profile.findOne({ user: userId });
-  if (exists) {
-    // update
-    Object.assign(exists, profileData);
-    await exists.save();
-    return exists;
-  }
-  const profile = new Profile({ user: userId, email: user.email, ...profileData });
-  await profile.save();
-  return profile;
-}
+/**
+ * Create a new profile
+ */
+export const createUserProfile = async (profileData) => {
+  const profile = new Profile(profileData);
+  return await profile.save();
+};
 
-module.exports = { createProfile };
+/**
+ * Get profile by user id
+ */
+export const getUserProfile = async (userId) => {
+  return await Profile.findOne({ user: userId });
+};
+
+/**
+ * Update profile
+ */
+export const updateUserProfile = async (userId, updateData) => {
+  return await Profile.findOneAndUpdate({ user: userId }, updateData, { new: true });
+};

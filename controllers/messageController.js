@@ -1,38 +1,20 @@
-// controllers/messageController.js
-const Message = require('../models/Message');
-const Profile = require('../models/Profile');
-const { uploadBuffer } = require('../services/cloudinaryService');
-const responses = require('../utils/responses');
+import Message from '../models/Message.js';
 
-async function sendMessage(req, res) {
+export const sendMessage = async (req, res) => {
   try {
-    const fromProfile = await Profile.findOne({ user: req.user._id });
-    if (!fromProfile) return responses.error(res, 400, { error: 'Create profile first' });
     const { toProfileId, text } = req.body;
-    if (!toProfileId) return responses.error(res, 400, { error: 'toProfileId required' });
+    const attachmentFile = req.files['attachments'] ? req.files['attachments'][0] : null;
 
-    const messageData = {
-      from: fromProfile._id,
+    const message = new Message({
+      from: req.user._id,
       to: toProfileId,
-      text
-    };
+      text,
+      attachments: attachmentFile ? { data: attachmentFile.buffer, contentType: attachmentFile.mimetype } : undefined
+    });
 
-    if (req.files && req.files.attachments) {
-      const attachments = [];
-      for (const f of req.files.attachments) {
-        const r = await uploadBuffer(f, 'jobnest/messages');
-        attachments.push({ url: r.secure_url, publicId: r.public_id, filename: f.originalname });
-      }
-      messageData.attachments = attachments;
-    }
-
-    const m = new Message(messageData);
-    await m.save();
-    return responses.success(res, 201, { message: m });
+    await message.save();
+    res.status(201).json(message);
   } catch (err) {
-    console.error(err);
-    return responses.error(res, 400, { error: err.message });
+    res.status(400).json({ error: 'invalid request body' });
   }
-}
-
-module.exports = { sendMessage };
+};

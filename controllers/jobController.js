@@ -3,9 +3,23 @@ import Application from '../models/Application.js';
 // import { sendEmail } from '../services/emailService.js';
 
 export const getJobs = async (req, res) => {
-  const jobs = await Job.find();
-  res.status(200).json({ jobs });
+  try {
+    if (req.query.mine === 'true') {
+      if (!req.user || req.user.role !== 'employer') {
+        return res.status(403).json({ error: 'Only employers can view their jobs' });
+      }
+      const jobs = await Job.find({ employer: req.user._id });
+      return res.json(jobs);
+    }
+
+    const jobs = await Job.find();
+    res.json(jobs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
 };
+
 
 export const applyJob = async (req, res) => {
   try {
@@ -35,6 +49,7 @@ export const applyJob = async (req, res) => {
 export const createJob = async (req, res) => {
     try {
       // only employer allowed
+      console.log(req.user.role);
       if (req.user.role !== 'employer') {
         return res.status(403).json({ error: 'Only employers can create jobs' });
       }

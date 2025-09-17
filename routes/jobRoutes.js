@@ -5,9 +5,9 @@ import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getJobs);
+router.get('/', getJobs); 
 
-router.post("/", protect, createJob);
+router.post('/', protect, createJob);
 
 router.post(
   '/:jobId/apply',
@@ -18,5 +18,6 @@ router.post(
   ]),
   applyJob
 );
+
 
 export default router;

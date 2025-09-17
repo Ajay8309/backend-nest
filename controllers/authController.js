@@ -17,11 +17,34 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (user && (await user.matchPassword(password))) {
-    res.status(200).json({ token: generateToken(user._id) });
-  } else {
-    res.status(401).json({ error: 'Invalid credentials ' });
+  try {
+    const { email, password } = req.body;
+
+    // find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // verify password (assuming user.matchPassword is defined on schema)
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // return token and user details
+    res.status(200).json({
+      token: generateToken(user._id),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role, // <-- important
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
+

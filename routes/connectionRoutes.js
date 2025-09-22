@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   connectUser,
-  listConnections,
+  listIncomingRequests,
   updateConnectionStatus
 } from '../controllers/connectionController.js';
 import { protect } from '../middlewares/authMiddleware.js';
@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post('/', protect, connectUser);
 
-router.get('/', protect, listConnections);
+router.get('/', protect, listIncomingRequests);
 
 router.put('/:id/status', protect, updateConnectionStatus);
 

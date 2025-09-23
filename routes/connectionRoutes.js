@@ -1,17 +1,25 @@
+// routes/connectionRoutes.js
 import express from 'express';
 import {
-  connectUser,
-  listIncomingRequests,
-  updateConnectionStatus
+  sendConnectionRequest,
+  getPendingRequests,
+  getConnections,
+  respondToConnectionRequest
 } from '../controllers/connectionController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, connectUser);
+// send request
+router.post('/', protect, sendConnectionRequest);
 
-router.get('/', protect, listIncomingRequests);
+// get pending requests for logged-in user
+router.get('/pending', protect, getPendingRequests);
 
-router.put('/:id/status', protect, updateConnectionStatus);
+// get all accepted connections
+router.get('/', protect, getConnections);
+
+// accept/decline a request
+router.post('/:requestId/respond', protect, respondToConnectionRequest);
 
 export default router;

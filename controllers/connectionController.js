@@ -1,76 +1,120 @@
+// controllers/connectionController.js
+import ConnectionRequest from '../models/ConnectionRequest.js';
 import Connection from '../models/Connection.js';
 
-
-export const connectUser = async (req, res) => {
+/**
+ * Send a connection request
+ */
+export const sendConnectionRequest = async (req, res) => {
   try {
-    const { recipientProfileId } = req.body;
+    const from = req.user._id;
+    const { to, message } = req.body;
 
-    if (recipientProfileId === req.user._id.toString()) {
-      return res.status(400).json({ error: "Cannot connect with yourself" });
-    }
+    if (!to) return res.status(400).json({ error: 'Recipient user ID required' });
+    if (from.toString() === to) return res.status(400).json({ error: 'Cannot send request to yourself' });
 
-    const existing = await Connection.findOne({
-      $or: [
-        { requester: req.user._id, recipient: recipientProfileId },
-        { requester: recipientProfileId, recipient: req.user._id }
-      ]
-    });
+    const existing = await ConnectionRequest.findOne({ from, to, status: 'pending' });
+    if (existing) return res.status(400).json({ error: 'Request already pending' });
 
-    if (existing) {
-      return res.status(400).json({ error: "Connection already exists" });
-    }
+    const reqDoc = await ConnectionRequest.create({ from, to, message });
 
-    const connection = new Connection({
-      requester: req.user._id,
-      recipient: recipientProfileId,
-      status: "pending" // initial status
-    });
-
-    await connection.save();
-    res.status(201).json(connection);
+    res.status(201).json(reqDoc);
   } catch (err) {
     console.error(err);
-    res.status(400).json({ error: 'Invalid request body' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-
-export const listIncomingRequests = async (req, res) => {
+/**
+ * Get all pending connection requests received by the logged-in user
+ */
+export const getPendingRequests = async (req, res) => {
   try {
-    const requests = await Connection.find({
-      recipient: req.user._id,
-      status: 'pending'
+    const requests = await ConnectionRequest.find({ to: req.user._id, status: 'pending' })
+      .populate('from', 'email'); // include sender email
+    res.json(requests);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * Get all connections of the logged-in user
+ */
+export const getConnections = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const conns = await Connection.find({
+      $or: [{ requester: userId }, { recipient: userId }]
     })
-      .populate('requester', 'name email');
+      .populate('requester', 'name email')
+      .populate('recipient', 'name email');
 
-    res.status(200).json(requests);
+    // format to show the other user
+    const formatted = conns
+      .map(conn => {
+        const otherUser =
+          conn.requester._id.toString() === userId.toString()
+            ? conn.recipient
+            : conn.requester;
+        return { _id: conn._id, user: otherUser };
+      })
+      .filter(c => c.user !== null); // remove null users
+
+    // send only ONE response
+    return res.json({ accepted: formatted });
   } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: 'Could not fetch incoming requests' });
+    console.error('Error in getConnections:', err);
+    return res.status(500).json({ error: 'Server error' });
   }
 };
-
-
-// update status (accept/reject)
-export const updateConnectionStatus = async (req, res) => {
+/**
+ * Accept or decline a connection request
+ */
+export const respondToConnectionRequest = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body; // 'accepted' or 'rejected'
+    const { requestId } = req.params;
+    const { action } = req.body;
+    const userId = req.user._id.toString();
 
-    const connection = await Connection.findOne({
-      _id: id,
-      recipient: req.user._id
-    });
+    // fetch the connection request
+    const reqDoc = await ConnectionRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ error: 'Request not found' });
 
-    if (!connection) return res.status(404).json({ error: 'Not authorized or not found' });
+    if (reqDoc.to.toString() !== userId)
+      return res.status(403).json({ error: 'Not authorized to respond' });
 
-    connection.status = status;
-    await connection.save();
+    if (action === 'accept') {
+      reqDoc.status = 'accepted';
+      await reqDoc.save();
 
-    res.status(200).json({ message: `Connection ${status}`, connection });
+      // ensure connection exists only once
+      let existingConnection = await Connection.findOne({
+        $or: [
+          { requester: reqDoc.from, recipient: reqDoc.to },
+          { requester: reqDoc.to, recipient: reqDoc.from }
+        ]
+      });
+
+      if (!existingConnection) {
+        existingConnection = await Connection.create({
+          requester: reqDoc.from,
+          recipient: reqDoc.to
+        });
+      }
+
+      return res.json({ status: 'accepted', connection: existingConnection });
+    } else if (action === 'decline') {
+      reqDoc.status = 'declined';
+      await reqDoc.save();
+      return res.json({ status: 'declined' });
+    } else {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
   } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: 'Could not update status' });
+    console.error('Error in respondToConnectionRequest:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 };
-

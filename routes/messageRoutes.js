@@ -1,10 +1,21 @@
+// routes/messageRoutes.js
 import express from 'express';
-import { upload } from '../middlewares/uploadMiddleware.js';
-import { sendMessage } from '../controllers/messageController.js';
+import {
+  getConversation,
+  sendMessage,
+  markMessagesRead
+} from '../controllers/messageController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, upload.fields([{ name: 'attachments', maxCount: 1 }]), sendMessage);
+// get conversation history
+router.get('/:userId', protect, getConversation);
+
+// send a message (REST version)
+router.post('/', protect, sendMessage);
+
+// mark all messages from a user as read
+router.post('/:fromUserId/read', protect, markMessagesRead);
 
 export default router;

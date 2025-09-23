@@ -1,20 +1,57 @@
+// controllers/messageController.js
 import Message from '../models/Message.js';
 
-export const sendMessage = async (req, res) => {
+/**
+ * Get the conversation between the logged-in user and another user
+ */
+export const getConversation = async (req, res) => {
+  const { userId } = req.params; // other user ID
   try {
-    const { toProfileId, text } = req.body;
-    const attachmentFile = req.files['attachments'] ? req.files['attachments'][0] : null;
+    const messages = await Message.find({
+      $or: [
+        { from: req.user._id, to: userId },
+        { from: userId, to: req.user._id }
+      ]
+    }).sort({ createdAt: 1 }); // oldest first
 
-    const message = new Message({
-      from: req.user._id,
-      to: toProfileId,
-      text,
-      attachments: attachmentFile ? { data: attachmentFile.buffer, contentType: attachmentFile.mimetype } : undefined
-    });
-
-    await message.save();
-    res.status(201).json(message);
+    res.json(messages);
   } catch (err) {
-    res.status(400).json({ error: 'invalid request body' });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * Send a message (REST version, if you want non-socket clients)
+ */
+export const sendMessage = async (req, res) => {
+  const from = req.user._id;
+  const { toUserId, text } = req.body;
+  try {
+    if (!toUserId || !text) return res.status(400).json({ error: 'Missing toUserId or text' });
+
+    const msg = await Message.create({ from, to: toUserId, text });
+
+    // Optionally: if you export your io instance from socketServer, you can push live:
+    // io.to(`user:${toUserId}`).emit('message:received', { message: msg });
+
+    res.status(201).json(msg);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * Mark all messages from a specific user as read
+ */
+export const markMessagesRead = async (req, res) => {
+  const { fromUserId } = req.params;
+  try {
+    await Message.updateMany({ from: fromUserId, to: req.user._id, read: false }, { read: true });
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 };

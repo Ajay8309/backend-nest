@@ -1,3 +1,5 @@
+// jobController.js
+
 import Job from '../models/Job.js';
 import Application from '../models/Application.js';
 // import { sendEmail } from '../services/emailService.js';

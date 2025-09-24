@@ -1,7 +1,7 @@
 import express from 'express';
 import { upload } from '../middlewares/uploadMiddleware.js';
 import { createProfile, getProfile } from '../controllers/profileController.js';
-import { createEmployerProfile, getEmployerProfile } from '../controllers/profileController.js';
+import { createEmployerProfile, getEmployerProfile, getProfileByUserId} from '../controllers/profileController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -25,5 +25,7 @@ router.post(
   protect,
   createEmployerProfile
 );
+
+router.get('/:userId', protect, getProfileByUserId);
 
 export default router;

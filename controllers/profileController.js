@@ -17,24 +17,39 @@ export const getProfile = async (req, res) => {
   }
 }
 
+
 export const createProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { name, email, skills, personalityAssessment, socialLinks, jobPreferences } = req.body;
+    const {
+      name,
+      email,
+      skills,
+      personalityAssessment,
+      socialLinks,
+      jobPreferences,
+      experience // <-- new field
+    } = req.body;
 
-    const resumeFile = req.files['resume'] ? req.files['resume'][0] : null;
-    const coverLetterFile = req.files['coverLetter'] ? req.files['coverLetter'][0] : null;
+    // Handle uploaded files
+    const resumeFile = req.files?.['resume'] ? req.files['resume'][0] : null;
+    const coverLetterFile = req.files?.['coverLetter'] ? req.files['coverLetter'][0] : null;
+
+    // Parse skills (comma separated string) and experience (JSON string)
+    const parsedSkills = skills ? skills.split(",").map(s => s.trim()) : undefined;
+    const parsedExperience = experience ? JSON.parse(experience) : undefined;
 
     const profile = new Profile({
       user: userId,
       name,
       email,
-      skills: skills ? skills.split(",").map(s => s.trim()) : undefined,
+      skills: parsedSkills,
       personalityAssessment,
       resume: resumeFile ? { data: resumeFile.buffer, contentType: resumeFile.mimetype } : undefined,
       coverLetter: coverLetterFile ? { data: coverLetterFile.buffer, contentType: coverLetterFile.mimetype } : undefined,
       socialLinks: socialLinks ? JSON.parse(socialLinks) : undefined,
-      jobPreferences: jobPreferences ? JSON.parse(jobPreferences) : undefined
+      jobPreferences: jobPreferences ? JSON.parse(jobPreferences) : undefined,
+      experience: parsedExperience
     });
 
     await profile.save();
@@ -44,6 +59,7 @@ export const createProfile = async (req, res) => {
     res.status(400).json({ error: 'Invalid request body' });
   }
 };
+
 
 
 // Get employer profile by user ID
@@ -98,5 +114,21 @@ export const createEmployerProfile = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(400).json({ error: 'Invalid request body' });
+  }
+};
+
+export const getProfileByUserId = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const profile = await Profile.findOne({ user: userId }).populate('user', 'email role');
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    res.json(profile);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 };

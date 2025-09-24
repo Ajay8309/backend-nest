@@ -99,3 +99,4 @@ export const createJob = async (req, res) => {
     res.status(400).json({ error: 'Invalid request body' });
   }
 };
+

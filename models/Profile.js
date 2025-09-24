@@ -11,6 +11,15 @@ const profileSchema = new mongoose.Schema({
   resume: { data: Buffer, contentType: String },
   coverLetter: { data: Buffer, contentType: String },
 
+  // Work experience
+  experience: [
+    {
+      companyName: String,
+      role: String,
+      years: Number
+    }
+  ],
+
   // Company / Employer fields
   companyName: String,
   companyDescription: String,

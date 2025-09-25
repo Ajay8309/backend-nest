@@ -132,3 +132,55 @@ export const getProfileByUserId = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const {
+      name,
+      email,
+      skills,
+      personalityAssessment,
+      socialLinks,
+      jobPreferences,
+      experience
+    } = req.body;
+
+    const resumeFile = req.files?.['resume'] ? req.files['resume'][0] : null;
+    const coverLetterFile = req.files?.['coverLetter'] ? req.files['coverLetter'][0] : null;
+
+    const parsedSkills = skills ? skills.split(",").map(s => s.trim()) : undefined;
+    const parsedExperience = experience ? JSON.parse(experience) : undefined;
+
+    // Find the profile
+    let profile = await Profile.findOne({ user: userId });
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Update fields only if provided
+    if (name !== undefined) profile.name = name;
+    if (email !== undefined) profile.email = email;
+    if (parsedSkills !== undefined) profile.skills = parsedSkills;
+    if (personalityAssessment !== undefined) profile.personalityAssessment = personalityAssessment;
+    if (socialLinks !== undefined) profile.socialLinks = JSON.parse(socialLinks);
+    if (jobPreferences !== undefined) profile.jobPreferences = JSON.parse(jobPreferences);
+    if (parsedExperience !== undefined) profile.experience = parsedExperience;
+
+    if (resumeFile) {
+      profile.resume = { data: resumeFile.buffer, contentType: resumeFile.mimetype };
+    }
+    if (coverLetterFile) {
+      profile.coverLetter = { data: coverLetterFile.buffer, contentType: coverLetterFile.mimetype };
+    }
+
+    await profile.save();
+
+    res.status(200).json({ message: 'Profile updated successfully', profile });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: 'Invalid request body' });
+  }
+};
